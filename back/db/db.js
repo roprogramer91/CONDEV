@@ -1,12 +1,12 @@
 //back/db.js
 
-import pg from 'pg';
+import pg, { escapeIdentifier } from 'pg';
 import dotenv from 'dotenv';
 
 const { Pool } = pg;
 
 // Cargar variables de entorno desde el archivo .env
-const pool = new Pool({
+export const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
 });
 
@@ -22,3 +22,5 @@ console.log('conexion pool exitosa a la base de datos.');
 
 // Exportar una función para ejecutar consultas
 export const query = (text, params) => pool.query(text, params);
+
+

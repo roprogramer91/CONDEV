@@ -6,10 +6,10 @@ import { obtenerProductoPorNombre, guardarProducto, actualizarProducto } from '.
 import { guardarLote, obtenerLotesAVencer, actualizarStockLote, obtenerLotePorNro, sumarStockLote, actualizarLote,eliminarLote } from '../models/lote.model.js';
 import { calcularDiferenciaDias } from '../utils/dateUtils.js';
 
-// Simulación de ID de la Farmacia (temporal para el MVP)
-const FARMACIA_ID = 1; 
 
 export const registrarItemConLote = async (req, res) => {
+
+    const FARMACIA_ID = req.usuario.farmacia_id; // Obtenemos el ID de la Farmacia del token
     
     const { 
         nombre, 
@@ -74,8 +74,7 @@ const DIAS_AVISO = 90;
 
 export const revisarVencimientos = async (req, res) => {
     
-    // Simulación del ID de la Farmacia logueada
-    const FARMACIA_ID = 1; 
+    const FARMACIA_ID = req.usuario.farmacia_id; // Obtenemos el ID de la Farmacia del token
 
     try {
         // 1. Obtener datos crudos (Máximo 90 días adelante)

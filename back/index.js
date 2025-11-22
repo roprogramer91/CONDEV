@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import 'dotenv/config';
 // Importar las rutas
 import inventarioRoutes from './routes/inventario.routes.js';
+import authRoutes from './routes/auth.routes.js';
 //-------------------------------------------//
 
 
@@ -31,7 +32,7 @@ app.use(cors());
 
 //--------RUTAS--------//
 app.use('/api/inventario', inventarioRoutes);
-
+app.use('/api/auth', authRoutes);
 //---------------------//
 
 
