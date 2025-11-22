@@ -5,6 +5,7 @@ import { calcularDiferenciaDias } from '../utils/dateUtils.js';
 import { enviarEmailNotificacion } from '../utils/emailSender.js';
 import { crearNotificacion } from '../models/notificacion.model.js';
 import { obtenerTodasLasFarmacias } from '../models/farmacia.model.js';
+import { obtenerCorreosAdminPorFarmacia } from '../models/usuario.model.js';
 
 const DIAS_URGENTE = 30;
 const DIAS_AVISO = 90;
@@ -52,6 +53,9 @@ export const verificarYEnviarAlertas = async () => {
 
             const lotesCrudos = await obtenerLotesAVencer(DIAS_AVISO, farmaciaId);
 
+            // Obtenemos los correos de los administradores de esta farmacia
+            const correosAdmins = await obtenerCorreosAdminPorFarmacia(farmaciaId);
+
             for (const lote of lotesCrudos) {
                 const procesado = procesarLote(lote);
 
@@ -71,10 +75,8 @@ export const verificarYEnviarAlertas = async () => {
                 }
 
                 // B. Enviar Email solo si es URGENTE (para no spammear)
-                // TODO: Obtener correo del admin de la farmacia específica
-                if (procesado.categoria_alerta === 'URGENTE') {
+                if (procesado.categoria_alerta === 'URGENTE' && correosAdmins.length > 0) {
                     const asunto = `ALERTA ${procesado.categoria_alerta}: ${lote.nombre_producto} vence pronto`;
-                    const correoAdmin = "admin.farmacia01@ejemplo.com"; // Placeholder
 
                     const html = `
                         <h3>Atención Farmacéutico</h3>
@@ -83,7 +85,10 @@ export const verificarYEnviarAlertas = async () => {
                         <p>Por favor, tomar medidas.</p>
                     `;
 
-                    await enviarEmailNotificacion(correoAdmin, asunto, html);
+                    // Enviar a todos los admins de la farmacia
+                    for (const correo of correosAdmins) {
+                        await enviarEmailNotificacion(correo, asunto, html);
+                    }
                 }
             }
         }

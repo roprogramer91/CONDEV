@@ -4,7 +4,7 @@
 import { obtenerProductoPorNombre, guardarProducto, actualizarProducto } from '../models/producto.model.js';
 import { guardarLote, obtenerLotesAVencer, actualizarStockLote, obtenerLotePorNro, sumarStockLote, actualizarLote, eliminarLote } from '../models/lote.model.js';
 import { calcularDiferenciaDias } from '../utils/dateUtils.js';
-import { obtenerAlertasProcesadas } from '../services/vencimientoService.js';
+import { obtenerAlertasProcesadas, verificarYEnviarAlertas } from '../services/vencimientoService.js';
 
 // Importamos las clases necesarias
 import Producto from '../classes/Producto.js';
@@ -197,5 +197,39 @@ export const eliminarItemInventario = async (req, res) => {
     } catch (error) {
         console.error("🚨 Error al eliminar lote:", error.message);
         return res.status(500).json({ error: 'Fallo al procesar la eliminación.' });
+    }
+};
+
+// 6. Controlador de TEST para disparar emails
+export const triggerTestEmail = async (req, res) => {
+    console.log("🧪 [TEST] Disparando verificación de alertas manualmente...");
+    try {
+        await verificarYEnviarAlertas();
+        return res.status(200).json({ mensaje: 'Proceso de alertas disparado. Revisa la consola del servidor y tu correo.' });
+    } catch (error) {
+        console.error("🚨 Error en test de email:", error);
+        return res.status(500).json({ error: 'Fallo al disparar el test.' });
+    }
+};
+
+// 7. Controlador para BUSCAR items por nombre (para la gestión)
+export const buscarItems = async (req, res) => {
+    const farmaciaId = req.usuario.farmacia_id;
+    const { q } = req.query; // El término de búsqueda viene en la URL ?q=...
+
+    if (!q) {
+        return res.status(400).json({ error: 'Falta el término de búsqueda (q).' });
+    }
+
+    try {
+        // Importamos la función del modelo (asegúrate de haberla exportado en lote.model.js)
+        const { buscarLotesPorNombreProducto } = await import('../models/lote.model.js');
+
+        const resultados = await buscarLotesPorNombreProducto(farmaciaId, q);
+        return res.status(200).json(resultados);
+
+    } catch (error) {
+        console.error("🚨 Error al buscar items:", error.message);
+        return res.status(500).json({ error: 'Fallo al buscar items.' });
     }
 };

@@ -11,7 +11,7 @@ export const guardarLote = async (lote) => {
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id;
     `;
-    
+
     const values = [
         lote.producto_id,
         lote.farmacia_id,
@@ -22,7 +22,7 @@ export const guardarLote = async (lote) => {
 
     try {
         await query(sql, values);
-        return true; 
+        return true;
     } catch (error) {
         console.error("Error al ejecutar INSERT en Lote:", error.message);
         throw new Error(`Fallo al guardar lote: ${error.message}`);
@@ -45,9 +45,9 @@ export const obtenerLotesAVencer = async (diasMaximos, farmaciaId) => {
                 AND L.fecha_vencimiento <= (CURRENT_DATE + INTERVAL '1 day' * $1)
                 AND L.cantidad_actual > 0;
         `;
-        // Nota: $1 es diasMaximos, $2 es farmaciaId
-        const values = [diasMaximos, farmaciaId];
-    
+    // Nota: $1 es diasMaximos, $2 es farmaciaId
+    const values = [diasMaximos, farmaciaId];
+
     const res = await query(sql, values);
     return res.rows;
 };
@@ -60,12 +60,12 @@ export const actualizarStockLote = async (loteId, cantidadADevolver) => {
         SET cantidad_actual = cantidad_actual - $2
         WHERE id = $1;
     `;
-    
+
     const values = [loteId, cantidadADevolver];
 
     try {
         await query(sql, values);
-        return true; 
+        return true;
     } catch (error) {
         console.error("Error al descontar stock:", error.message);
         throw new Error(`Fallo al actualizar stock: ${error.message}`);
@@ -79,7 +79,7 @@ export const obtenerLotePorNro = async (productoId, nroLote, farmaciaId) => {
         WHERE producto_id = $1 AND nro_lote = $2 AND farmacia_id = $3;
     `;
     const values = [productoId, nroLote, farmaciaId];
-    
+
     const res = await query(sql, values);
     return res.rows[0] || null; // Devuelve el Lote si existe
 };
@@ -111,8 +111,8 @@ export const actualizarLote = async (loteId, nuevosDatos) => {
         RETURNING id;
     `;
     const values = [
-        loteId, 
-        nuevosDatos.fecha_vencimiento, 
+        loteId,
+        nuevosDatos.fecha_vencimiento,
         nuevosDatos.cantidad_actual,
         nuevosDatos.nro_lote
     ];
@@ -136,4 +136,23 @@ export const eliminarLote = async (loteId) => {
         console.error("Error al eliminar lote:", error.message);
         throw new Error(`Fallo al eliminar lote: ${error.message}`);
     }
+};
+
+// 8. Función para buscar lotes por nombre de producto (parcial)
+export const buscarLotesPorNombreProducto = async (farmaciaId, queryTexto) => {
+    const sql = `
+        SELECT 
+            L.id as lote_id, L.nro_lote, L.fecha_vencimiento, L.cantidad_actual,
+            P.id as producto_id, P.nombre as nombre_producto, P.laboratorio, P.compuesto
+        FROM Lote L
+        JOIN Producto P ON L.producto_id = P.id
+        WHERE 
+            L.farmacia_id = $1
+            AND P.nombre ILIKE $2
+        ORDER BY P.nombre ASC, L.fecha_vencimiento ASC;
+    `;
+    const values = [farmaciaId, `%${queryTexto}%`];
+
+    const res = await query(sql, values);
+    return res.rows;
 };

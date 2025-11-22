@@ -37,7 +37,7 @@ export const obtenerUsuarioPorCorreo = async (correo) => {
  */
 
 
-export const registrarUsuario = async (farmaciaId, correo, hashContrasena, rol, activo= true) => {
+export const registrarUsuario = async (farmaciaId, correo, hashContrasena, rol, activo = true) => {
     const sql = `
             INSERT INTO Usuario (farmacia_id, correo, contrasena, rol, activo)
                 VALUES ($1, $2, $3, $4, $5) 
@@ -50,6 +50,21 @@ export const registrarUsuario = async (farmaciaId, correo, hashContrasena, rol, 
         return res.rows[0].id; //retorna el id del usuario creado
     } catch (error) {
         console.error("Error al registrar usuario:", error.message);
-        throw new Error(`Fallo al registrar usuario: ${error.message}`);    
+        throw new Error(`Fallo al registrar usuario: ${error.message}`);
     }
+};
+
+/**
+ * Obtiene el correo de los usuarios con rol ADMIN de una farmacia específica.
+ * @param {number} farmaciaId 
+ * @returns {Promise<string[]>} Lista de correos
+ */
+export const obtenerCorreosAdminPorFarmacia = async (farmaciaId) => {
+    const sql = `
+        SELECT correo FROM Usuario 
+        WHERE farmacia_id = $1 AND rol = 'ADMIN' AND activo = TRUE;
+    `;
+    const values = [farmaciaId];
+    const res = await query(sql, values);
+    return res.rows.map(u => u.correo);
 };

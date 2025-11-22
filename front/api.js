@@ -54,6 +54,39 @@ export const login = async (correo, contrasena) => {
   return parseResponse(response);
 };
 
+export const triggerTestEmail = async () => {
+  const response = await fetch(`${BASE_API_URL}/test-email`, {
+    method: 'POST',
+    headers: { ...jsonHeaders, ...authHeaders() },
+  });
+  return parseResponse(response);
+};
+
+export const buscarItems = async (query) => {
+  const response = await fetch(`${BASE_API_URL}/buscar?q=${encodeURIComponent(query)}`, {
+    method: 'GET',
+    headers: { ...jsonHeaders, ...authHeaders() },
+  });
+  return parseResponse(response);
+};
+
+export const editarItem = async (payload) => {
+  const response = await fetch(`${BASE_API_URL}/editar`, {
+    method: 'PUT',
+    headers: { ...jsonHeaders, ...authHeaders() },
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(response);
+};
+
+export const eliminarItem = async (loteId) => {
+  const response = await fetch(`${BASE_API_URL}/lote/${loteId}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  });
+  return parseResponse(response);
+};
+
 export const setAuthToken = (token) => {
   authToken = token || null;
 };

@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de Vencimientos</title>
   <link rel="stylesheet" href="./style.css">
 </head>
+
 <body>
   <header class="app-header">
     <div class="branding">
@@ -14,15 +16,15 @@
       <p class="subhead">Organiza tus medicamentos y recibe avisos antes de que venzan.</p>
     </div>
     <div class="header-actions">
-      <div class="tabs">
-        <button class="tab-btn" data-seccion="resumen">Resumen</button>
-        <button class="tab-btn" data-seccion="carga">Cargar item</button>
-        <button class="tab-btn" data-seccion="alertas">Alertas</button>
-      </div>
-      <button id="btn-theme" class="icon-btn theme-btn" type="button" aria-label="Cambiar tema">
-        <span id="icon-theme" class="theme-icon"></span>
-      </button>
-      <button id="btn-logout" class="btn secundario hidden" type="button">Cerrar sesión</button>
+      <button class="tab-btn" data-seccion="resumen">Resumen</button>
+      <button class="tab-btn" data-seccion="carga">Cargar item</button>
+      <button class="tab-btn" data-seccion="alertas">Alertas</button>
+      <button class="tab-btn" data-seccion="gestion">Gestión</button>
+    </div>
+    <button id="btn-theme" class="icon-btn theme-btn" type="button" aria-label="Cambiar tema">
+      <span id="icon-theme" class="theme-icon"></span>
+    </button>
+    <button id="btn-logout" class="btn secundario hidden" type="button">Cerrar sesión</button>
     </div>
   </header>
 
@@ -116,14 +118,113 @@
           <p class="subhead">Consulta los lotes cercanos a vencer y gestiona devoluciones.</p>
         </div>
         <div class="seccion-actions">
+          <button id="btn-test-email" class="btn secundario">Test Email</button>
           <button id="btn-refrescar" class="btn primario">Recargar alertas</button>
         </div>
       </div>
+
       <div id="mensaje-alertas" class="mensaje"></div>
       <div id="contenedor-alertas" class="tabla-wrapper"></div>
     </section>
+
+    <!-- SECCIÓN GESTIÓN DE INVENTARIO -->
+    <section id="seccion-gestion" class="seccion">
+      <div class="seccion-header">
+        <h2>Gestión de Inventario</h2>
+        <p class="subhead">Busca, edita o elimina productos del inventario.</p>
+      </div>
+
+      <div class="search-container">
+        <input type="text" id="input-busqueda" placeholder="Buscar por nombre de producto..." />
+        <button id="btn-buscar" class="btn primario">Buscar</button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Laboratorio</th>
+              <th>Lote</th>
+              <th>Vencimiento</th>
+              <th>Stock</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-gestion-body">
+            <!-- Resultados de búsqueda aquí -->
+          </tbody>
+        </table>
+        <p id="mensaje-gestion" class="mensaje-vacio">Realiza una búsqueda para ver resultados.</p>
+      </div>
+
+      <!-- Contenedor para vista móvil (Tarjetas) -->
+      <div id="gestion-cards" class="alertas-cards"></div>
+    </section>
   </main>
 
+  <!-- MODAL DE DETALLE ITEM (Gestión) -->
+  <div id="modal-detalle-item" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Detalle del Item</h3>
+        <button class="icon-btn" data-modal-close-detalle>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="detalle-item-content" class="modal-detalle">
+          <!-- Info dinámica aquí -->
+        </div>
+        <div class="acciones-modal stacked">
+          <button id="btn-editar-detalle" class="btn primario">Editar</button>
+          <button id="btn-eliminar-detalle" class="btn secundario error">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDICIÓN -->
+  <div id="modal-edicion" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Editar Item</h3>
+        <button class="icon-btn" data-modal-close-edit>&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edicion" class="form-grid">
+          <input type="hidden" name="producto_id">
+          <input type="hidden" name="lote_id">
+
+          <label class="field">
+            <span>Nombre Producto</span>
+            <input name="nombre" type="text" required>
+          </label>
+          <label class="field">
+            <span>Laboratorio</span>
+            <input name="laboratorio" type="text">
+          </label>
+          <label class="field">
+            <span>Nro Lote</span>
+            <input name="nro_lote" type="text" required>
+          </label>
+          <label class="field">
+            <span>Vencimiento</span>
+            <input name="fecha_vencimiento" type="date" required>
+          </label>
+          <label class="field">
+            <span>Cantidad</span>
+            <input name="cantidad_actual" type="number" min="0" required>
+          </label>
+
+          <div class="acciones-modal">
+            <button type="button" class="btn secundario" data-modal-cancel-edit>Cancelar</button>
+            <button type="submit" class="btn primario">Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE DEVOLUCIÓN (Existente) -->
   <div id="modal-devolucion" class="modal-overlay" hidden>
     <div class="modal">
       <div class="modal-head">
@@ -156,4 +257,5 @@
 
   <script type="module" src="./main.js"></script>
 </body>
+
 </html>
