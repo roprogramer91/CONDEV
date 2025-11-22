@@ -6,6 +6,14 @@ const claseFila = (categoria) => {
   return '';
 };
 
+const claseChip = (categoria) => {
+  const key = (categoria || '').toString().toLowerCase();
+  if (key === 'urgente') return 'chip-urgente';
+  if (key === 'medio') return 'chip-medio';
+  if (key === 'aviso') return 'chip-aviso';
+  return 'chip-aviso';
+};
+
 const formatearFecha = (valor) => {
   if (!valor) return '-';
   const fecha = new Date(valor);
@@ -48,7 +56,7 @@ export const renderizarTabla = (alertas, contenedor, onSolicitarDevolucion) => {
   const tabla = document.createElement('table');
   const thead = document.createElement('thead');
   const encabezado = document.createElement('tr');
-  ['Producto', 'Lote', 'Vencimiento', 'Cant. actual', 'Categoria', 'Dias restantes', 'Acciones'].forEach((titulo) => {
+  ['Producto', 'Vencimiento', 'Dias restantes', 'Categoria'].forEach((titulo) => {
     const th = document.createElement('th');
     th.textContent = titulo;
     encabezado.appendChild(th);
@@ -65,35 +73,30 @@ export const renderizarTabla = (alertas, contenedor, onSolicitarDevolucion) => {
 
     const celdas = [
       alerta.nombre_producto,
-      alerta.nro_lote,
       formatearFecha(alerta.fecha_vencimiento),
-      alerta.cantidad_actual,
-      alerta.categoria_alerta,
       alerta.dias_restantes,
+      alerta.categoria_alerta,
     ];
 
     celdas.forEach((valor, idx) => {
       const td = document.createElement('td');
-      if (idx === 4) {
+      if (idx === 0) {
+        const link = document.createElement('button');
+        link.className = 'link-cell';
+        link.type = 'button';
+        link.textContent = valor || 'Producto';
+        link.addEventListener('click', () => onSolicitarDevolucion(alerta));
+        td.appendChild(link);
+      } else if (idx === 3) {
         const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.textContent = valor || '-';
+        chip.className = `chip ${claseChip(valor)}`;
+        chip.textContent = (valor || 'AVISO').toString().toUpperCase();
         td.appendChild(chip);
       } else {
         td.textContent = valor ?? '-';
       }
       fila.appendChild(td);
     });
-
-    const accionesTd = document.createElement('td');
-    const btn = document.createElement('button');
-    btn.className = 'btn secundario';
-    btn.type = 'button';
-    btn.textContent = 'Registrar devolucion';
-    btn.addEventListener('click', () => onSolicitarDevolucion(alerta));
-
-    accionesTd.appendChild(btn);
-    fila.appendChild(accionesTd);
     tbody.appendChild(fila);
   });
 
@@ -123,8 +126,8 @@ export const renderizarResumen = (alertas, contenedor) => {
     const nombre = document.createElement('h4');
     nombre.textContent = alerta.nombre_producto || 'Producto';
     const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.textContent = alerta.categoria_alerta || 'AVISO';
+    chip.className = `chip ${claseChip(alerta.categoria_alerta)}`;
+    chip.textContent = (alerta.categoria_alerta || 'AVISO').toString().toUpperCase();
     header.append(nombre, chip);
 
     const lote = document.createElement('p');

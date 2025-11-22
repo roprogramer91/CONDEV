@@ -4,6 +4,7 @@ import { mostrarSeccion, marcarTabActiva, actualizarMensaje, renderizarTabla, re
 const estado = {
   cargandoAlertas: false,
   alertaSeleccionada: null,
+  modoCantidad: false,
 };
 
 const refs = {
@@ -18,12 +19,15 @@ const refs = {
   btnResumen: document.getElementById('btn-resumen'),
   modalOverlay: document.getElementById('modal-devolucion'),
   modalContexto: document.getElementById('modal-contexto'),
+  modalDetalle: document.getElementById('modal-detalle'),
   modalForm: document.getElementById('form-modal'),
   modalInput: document.getElementById('input-cantidad'),
   modalError: document.getElementById('modal-error'),
   modalClose: document.querySelector('[data-modal-close]'),
   modalCancel: document.querySelector('[data-modal-cancel]'),
   btnTheme: document.getElementById('btn-theme'),
+  iconTheme: document.getElementById('icon-theme'),
+  btnHabilitar: document.getElementById('btn-habilitar-devolucion'),
 };
 
 const THEME_KEY = 'cv-theme';
@@ -37,8 +41,27 @@ const setTheme = (theme) => {
     // ignore storage errors
   }
   if (refs.btnTheme) {
-    refs.btnTheme.innerText = elegido === 'dark' ? '☀️' : '🌙';
     refs.btnTheme.setAttribute('aria-label', elegido === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro');
+  }
+  if (refs.iconTheme) {
+    refs.iconTheme.classList.remove('icon-sun', 'icon-moon');
+    // Mostrar el icono del modo al que se cambiará
+    refs.iconTheme.classList.add(elegido === 'dark' ? 'icon-sun' : 'icon-moon');
+  }
+};
+
+const toggleCamposCantidad = (activar) => {
+  estado.modoCantidad = activar;
+  const contenedor = document.getElementById('cantidad-wrapper');
+  if (!contenedor) return;
+  contenedor.classList.toggle('activo', activar);
+  if (refs.modalInput) {
+    refs.modalInput.disabled = !activar;
+    if (activar) refs.modalInput.focus();
+  }
+  if (refs.modalForm) {
+    const submit = refs.modalForm.querySelector('button[type="submit"]');
+    if (submit) submit.disabled = !activar;
   }
 };
 
@@ -119,6 +142,8 @@ async function manejarDevolucion(loteId, cantidad) {
 const limpiarModal = () => {
   if (refs.modalInput) refs.modalInput.value = '';
   if (refs.modalError) refs.modalError.textContent = '';
+  estado.modoCantidad = false;
+  toggleCamposCantidad(false);
 };
 
 const cerrarModal = () => {
@@ -132,9 +157,22 @@ const abrirModalDevolucion = (alerta) => {
   if (refs.modalContexto) {
     refs.modalContexto.textContent = `Lote ${alerta.nro_lote} - ${alerta.nombre_producto}`;
   }
+  if (refs.modalDetalle) {
+    const detalles = [
+      { label: 'Producto', valor: alerta.nombre_producto },
+      { label: 'Laboratorio', valor: alerta.laboratorio },
+      { label: 'Lote', valor: alerta.nro_lote },
+      { label: 'Fecha vencimiento', valor: alerta.fecha_vencimiento },
+      { label: 'Dias restantes', valor: alerta.dias_restantes },
+      { label: 'Cantidad actual', valor: alerta.cantidad_actual },
+      { label: 'Categoria', valor: alerta.categoria_alerta },
+    ];
+    refs.modalDetalle.innerHTML = detalles
+      .map((d) => `<p><span class="modal-label">${d.label}:</span> ${d.valor ?? '-'}</p>`)
+      .join('');
+  }
   if (refs.modalOverlay) refs.modalOverlay.hidden = false;
   limpiarModal();
-  if (refs.modalInput) refs.modalInput.focus();
 };
 
 const manejarSubmitModal = async (event) => {
@@ -181,6 +219,10 @@ const iniciar = () => {
 
   if (refs.modalForm) {
     refs.modalForm.addEventListener('submit', manejarSubmitModal);
+  }
+  const btnHabilitar = document.getElementById('btn-habilitar-devolucion');
+  if (btnHabilitar) {
+    btnHabilitar.addEventListener('click', () => toggleCamposCantidad(true));
   }
   if (refs.modalClose) {
     refs.modalClose.addEventListener('click', cerrarModal);

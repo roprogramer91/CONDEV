@@ -19,7 +19,9 @@
         <button class="tab-btn" data-seccion="carga">Cargar item</button>
         <button class="tab-btn" data-seccion="alertas">Alertas</button>
       </div>
-      <button id="btn-theme" class="icon-btn theme-btn" type="button" aria-label="Cambiar tema"></button>
+      <button id="btn-theme" class="icon-btn theme-btn" type="button" aria-label="Cambiar tema">
+        <span id="icon-theme" class="theme-icon"></span>
+      </button>
     </div>
   </header>
 
@@ -107,15 +109,21 @@
         <button type="button" class="icon-btn" data-modal-close aria-label="Cerrar modal">X</button>
       </div>
       <p id="modal-contexto" class="modal-contexto"></p>
+      <div id="modal-detalle" class="modal-detalle"></div>
+      <div class="modal-actions stacked">
+        <button id="btn-habilitar-devolucion" class="btn devolver" type="button">Marcar devolucion</button>
+      </div>
       <form id="form-modal" class="modal-form">
-        <label class="field">
-          <span>Cantidad a devolver</span>
-          <input id="input-cantidad" name="cantidad" type="number" min="1" required placeholder="Ej. 5">
-        </label>
-        <div id="modal-error" class="modal-error" role="alert"></div>
-        <div class="modal-actions">
-          <button type="button" class="btn secundario" data-modal-cancel>Cancelar</button>
-          <button type="submit" class="btn primario">Confirmar</button>
+        <div id="cantidad-wrapper" class="cantidad-wrapper">
+          <label class="field">
+            <span>Cantidad a devolver</span>
+            <input id="input-cantidad" name="cantidad" type="number" min="1" required placeholder="Ej. 5" disabled>
+          </label>
+          <div id="modal-error" class="modal-error" role="alert"></div>
+          <div class="modal-actions">
+            <button type="button" class="btn secundario" data-modal-cancel>Cancelar</button>
+            <button type="submit" class="btn primario" disabled>Confirmar</button>
+          </div>
         </div>
       </form>
     </div>
