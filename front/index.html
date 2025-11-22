@@ -15,18 +15,43 @@
     </div>
     <div class="header-actions">
       <div class="tabs">
-        <button class="tab-btn activa" data-seccion="resumen">Resumen</button>
+        <button class="tab-btn" data-seccion="resumen">Resumen</button>
         <button class="tab-btn" data-seccion="carga">Cargar item</button>
         <button class="tab-btn" data-seccion="alertas">Alertas</button>
       </div>
       <button id="btn-theme" class="icon-btn theme-btn" type="button" aria-label="Cambiar tema">
         <span id="icon-theme" class="theme-icon"></span>
       </button>
+      <button id="btn-logout" class="btn secundario hidden" type="button">Cerrar sesión</button>
     </div>
   </header>
 
   <main class="layout">
-    <section id="seccion-resumen" class="seccion activa">
+    <section id="seccion-login" class="seccion activa">
+      <div class="seccion-header">
+        <div>
+          <p class="eyebrow">Acceso</p>
+          <h2>Ingresar</h2>
+          <p class="subhead">Usa tu correo y contraseña para acceder al dashboard.</p>
+        </div>
+      </div>
+      <form id="form-login" class="form-grid">
+        <label class="field">
+          <span>Correo</span>
+          <input name="correo" type="email" required placeholder="correo@ejemplo.com" autocomplete="username">
+        </label>
+        <label class="field">
+          <span>Contraseña</span>
+          <input name="contrasena" type="password" required placeholder="••••••••" autocomplete="current-password">
+        </label>
+        <div class="acciones-form">
+          <button type="submit" class="btn primario">Ingresar</button>
+        </div>
+      </form>
+      <div id="mensaje-login" class="mensaje"></div>
+    </section>
+
+    <section id="seccion-resumen" class="seccion">
       <div class="seccion-header">
         <div>
           <p class="eyebrow">Dashboard</p>

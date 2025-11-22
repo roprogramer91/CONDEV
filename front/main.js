@@ -1,10 +1,11 @@
-import { registrarItem, obtenerAlertas, registrarDevolucion } from './api.js';
+import { registrarItem, obtenerAlertas, registrarDevolucion, login as loginApi, setAuthToken } from './api.js';
 import { mostrarSeccion, marcarTabActiva, actualizarMensaje, renderizarTabla, renderizarResumen } from './ui.js';
 
 const estado = {
   cargandoAlertas: false,
   alertaSeleccionada: null,
   modoCantidad: false,
+  token: null,
 };
 
 const refs = {
@@ -28,9 +29,14 @@ const refs = {
   btnTheme: document.getElementById('btn-theme'),
   iconTheme: document.getElementById('icon-theme'),
   btnHabilitar: document.getElementById('btn-habilitar-devolucion'),
+  formLogin: document.getElementById('form-login'),
+  mensajeLogin: document.getElementById('mensaje-login'),
+  btnLogout: document.getElementById('btn-logout'),
+  tabsWrapper: document.querySelector('.tabs'),
 };
 
 const THEME_KEY = 'cv-theme';
+const TOKEN_KEY = 'cv-token';
 
 const setTheme = (theme) => {
   const elegido = theme === 'light' ? 'light' : 'dark';
@@ -70,7 +76,40 @@ const toggleTheme = () => {
   setTheme(actual === 'dark' ? 'light' : 'dark');
 };
 
+const estaLogueado = () => !!estado.token;
+
+const actualizarUIAuth = () => {
+  const logged = estaLogueado();
+  if (refs.btnLogout) refs.btnLogout.classList.toggle('hidden', !logged);
+  if (refs.tabsWrapper) refs.tabsWrapper.classList.toggle('hidden', !logged);
+  refs.tabs.forEach((tab) => {
+    tab.disabled = !logged;
+  });
+  if (!logged) {
+    mostrarSeccion('login');
+    marcarTabActiva(refs.tabs, '');
+  }
+};
+
+const setToken = (token) => {
+  estado.token = token || null;
+  setAuthToken(token || null);
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch (e) {
+    // ignore storage errors
+  }
+  actualizarUIAuth();
+};
+
 const cambiarSeccion = (nombre) => {
+  if (!estaLogueado() && nombre !== 'login') {
+    nombre = 'login';
+  }
   mostrarSeccion(nombre);
   marcarTabActiva(refs.tabs, nombre);
   if (nombre === 'resumen') {
@@ -83,6 +122,10 @@ const cambiarSeccion = (nombre) => {
 
 const manejarSubmitCarga = async (event) => {
   event.preventDefault();
+  if (!estaLogueado()) {
+    actualizarMensaje(refs.mensajeCarga, 'Inicia sesion para cargar items.', 'error');
+    return;
+  }
   const datos = Object.fromEntries(new FormData(refs.form).entries());
   const payload = {
     ...datos,
@@ -100,6 +143,10 @@ const manejarSubmitCarga = async (event) => {
 };
 
 const cargarAlertas = async () => {
+  if (!estaLogueado()) {
+    actualizarMensaje(refs.mensajeAlertas, 'Inicia sesion para ver alertas.', 'info');
+    return;
+  }
   if (estado.cargandoAlertas) return;
   estado.cargandoAlertas = true;
   actualizarMensaje(refs.mensajeAlertas, 'Cargando alertas...', 'info');
@@ -115,6 +162,10 @@ const cargarAlertas = async () => {
 };
 
 const cargarResumen = async () => {
+  if (!estaLogueado()) {
+    actualizarMensaje(refs.mensajeResumen, 'Inicia sesion para ver el resumen.', 'info');
+    return;
+  }
   actualizarMensaje(refs.mensajeResumen, 'Cargando resumen...', 'info');
   try {
     const alertas = await obtenerAlertas();
@@ -198,6 +249,13 @@ const iniciar = () => {
     (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
   setTheme(preferencia || 'dark');
 
+  const tokenGuardado = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+  if (tokenGuardado) {
+    setToken(tokenGuardado);
+  } else {
+    actualizarUIAuth();
+  }
+
   refs.tabs.forEach((tab) => {
     tab.addEventListener('click', () => cambiarSeccion(tab.dataset.seccion));
   });
@@ -217,12 +275,36 @@ const iniciar = () => {
     refs.btnTheme.addEventListener('click', toggleTheme);
   }
 
+  if (refs.formLogin) {
+    refs.formLogin.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const datos = Object.fromEntries(new FormData(refs.formLogin).entries());
+      actualizarMensaje(refs.mensajeLogin, 'Verificando credenciales...', 'info');
+      try {
+        const resp = await loginApi(datos.correo, datos.contrasena);
+        setToken(resp.token);
+        actualizarMensaje(refs.mensajeLogin, 'Acceso exitoso.', 'exito');
+        refs.formLogin.reset();
+        cambiarSeccion('resumen');
+      } catch (error) {
+        actualizarMensaje(refs.mensajeLogin, error.message, 'error');
+      }
+    });
+  }
+
+  if (refs.btnLogout) {
+    refs.btnLogout.addEventListener('click', () => {
+      setToken(null);
+      actualizarMensaje(refs.mensajeLogin, 'Sesión cerrada.', 'info');
+      cambiarSeccion('login');
+    });
+  }
+
   if (refs.modalForm) {
     refs.modalForm.addEventListener('submit', manejarSubmitModal);
   }
-  const btnHabilitar = document.getElementById('btn-habilitar-devolucion');
-  if (btnHabilitar) {
-    btnHabilitar.addEventListener('click', () => toggleCamposCantidad(true));
+  if (refs.btnHabilitar) {
+    refs.btnHabilitar.addEventListener('click', () => toggleCamposCantidad(true));
   }
   if (refs.modalClose) {
     refs.modalClose.addEventListener('click', cerrarModal);
@@ -237,7 +319,7 @@ const iniciar = () => {
     refs.modalOverlay.setAttribute('hidden', '');
   }
 
-  cambiarSeccion('resumen');
+  cambiarSeccion(estaLogueado() ? 'resumen' : 'login');
 };
 
 document.addEventListener('DOMContentLoaded', iniciar);

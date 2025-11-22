@@ -54,6 +54,10 @@
   box-sizing: border-box;
 }
 
+.hidden {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
@@ -160,6 +164,11 @@ body {
   color: #04110c;
   border-color: var(--color-primary);
   box-shadow: 0 12px 30px rgba(15, 186, 129, 0.25);
+}
+
+.tab-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .layout {
