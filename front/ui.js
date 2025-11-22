@@ -54,9 +54,10 @@ export const renderizarTabla = (alertas, contenedor, onSolicitarDevolucion) => {
   }
 
   const tabla = document.createElement('table');
+  tabla.className = 'alertas-table';
   const thead = document.createElement('thead');
   const encabezado = document.createElement('tr');
-  ['Producto', 'Vencimiento', 'Dias restantes', 'Categoria'].forEach((titulo) => {
+  ['Producto', 'Lote', 'Vencimiento', 'Cant. actual', 'Categoria', 'Dias restantes', 'Acciones'].forEach((titulo) => {
     const th = document.createElement('th');
     th.textContent = titulo;
     encabezado.appendChild(th);
@@ -73,21 +74,16 @@ export const renderizarTabla = (alertas, contenedor, onSolicitarDevolucion) => {
 
     const celdas = [
       alerta.nombre_producto,
+      alerta.nro_lote,
       formatearFecha(alerta.fecha_vencimiento),
-      alerta.dias_restantes,
+      alerta.cantidad_actual,
       alerta.categoria_alerta,
+      alerta.dias_restantes,
     ];
 
     celdas.forEach((valor, idx) => {
       const td = document.createElement('td');
-      if (idx === 0) {
-        const link = document.createElement('button');
-        link.className = 'link-cell';
-        link.type = 'button';
-        link.textContent = valor || 'Producto';
-        link.addEventListener('click', () => onSolicitarDevolucion(alerta));
-        td.appendChild(link);
-      } else if (idx === 3) {
+      if (idx === 4) {
         const chip = document.createElement('span');
         chip.className = `chip ${claseChip(valor)}`;
         chip.textContent = (valor || 'AVISO').toString().toUpperCase();
@@ -97,11 +93,75 @@ export const renderizarTabla = (alertas, contenedor, onSolicitarDevolucion) => {
       }
       fila.appendChild(td);
     });
+
+    const accionesTd = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.className = 'btn devolver';
+    btn.type = 'button';
+    btn.textContent = 'Registrar devolucion';
+    btn.addEventListener('click', () => onSolicitarDevolucion(alerta));
+    accionesTd.appendChild(btn);
+    fila.appendChild(accionesTd);
     tbody.appendChild(fila);
   });
 
   tabla.appendChild(tbody);
+
+  // Vista móvil en formato vertical
+  const tarjetas = document.createElement('div');
+  tarjetas.className = 'alertas-cards';
+
+  alertas.forEach((alerta) => {
+    const card = document.createElement('article');
+    const clase = claseFila(alerta.categoria_alerta);
+    if (clase) card.classList.add(clase);
+    card.classList.add('alert-card');
+
+    const titulo = document.createElement('div');
+    titulo.className = 'alert-card-head';
+    const nombre = document.createElement('h4');
+    nombre.textContent = alerta.nombre_producto || 'Producto';
+    const chip = document.createElement('span');
+    chip.className = `chip ${claseChip(alerta.categoria_alerta)}`;
+    chip.textContent = (alerta.categoria_alerta || 'AVISO').toString().toUpperCase();
+    titulo.append(nombre, chip);
+
+    const lista = document.createElement('div');
+    lista.className = 'alert-card-body';
+    const pares = [
+      ['Lote', alerta.nro_lote],
+      ['Vencimiento', formatearFecha(alerta.fecha_vencimiento)],
+      ['Dias restantes', alerta.dias_restantes],
+      ['Cantidad', alerta.cantidad_actual],
+    ];
+    pares.forEach(([label, valor]) => {
+      const row = document.createElement('div');
+      row.className = 'kv-row';
+      const k = document.createElement('span');
+      k.className = 'kv-key';
+      k.textContent = label;
+      const v = document.createElement('span');
+      v.className = 'kv-value';
+      v.textContent = valor ?? '-';
+      row.append(k, v);
+      lista.appendChild(row);
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'alert-card-actions';
+    const btn = document.createElement('button');
+    btn.className = 'btn devolver';
+    btn.type = 'button';
+    btn.textContent = 'Registrar devolucion';
+    btn.addEventListener('click', () => onSolicitarDevolucion(alerta));
+    actions.appendChild(btn);
+
+    card.append(titulo, lista, actions);
+    tarjetas.appendChild(card);
+  });
+
   contenedor.appendChild(tabla);
+  contenedor.appendChild(tarjetas);
 };
 
 export const renderizarResumen = (alertas, contenedor) => {
