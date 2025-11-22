@@ -1,0 +1,13 @@
+# ------------------------------------
+# Archivos de Node y Dependencias
+# ------------------------------------
+node_modules/
+npm-debug.log*
+yarn-error.log
+package-lock.json
+
+# ------------------------------------
+# Credenciales y Variables de Entorno
+# ------------------------------------
+.env
+.env.*

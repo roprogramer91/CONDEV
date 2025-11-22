@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Vencimientos</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="branding">
+      <p class="eyebrow">Panel web</p>
+      <h1>Control de Vencimientos</h1>
+      <p class="subhead">Carga de lotes y alertas conectadas al backend por fetch</p>
+    </div>
+    <div class="header-actions">
+      <div class="tabs">
+        <button class="tab-btn activa" data-seccion="resumen">Resumen</button>
+        <button class="tab-btn" data-seccion="carga">Cargar item</button>
+        <button class="tab-btn" data-seccion="alertas">Alertas</button>
+      </div>
+      <button id="btn-theme" class="icon-btn theme-btn" type="button" aria-label="Cambiar tema"></button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section id="seccion-resumen" class="seccion activa">
+      <div class="seccion-header">
+        <div>
+          <p class="eyebrow">Dashboard</p>
+          <h2>Resumen de vencimientos</h2>
+          <p class="subhead">Lotes con vencimiento más cercano para tenerlos a la vista.</p>
+        </div>
+        <div class="seccion-actions">
+          <button id="btn-resumen" class="btn primario" type="button">Actualizar resumen</button>
+        </div>
+      </div>
+      <div id="mensaje-resumen" class="mensaje"></div>
+      <div id="resumen-lista" class="resumen-grid"></div>
+    </section>
+
+    <section id="seccion-carga" class="seccion">
+      <div class="seccion-header">
+        <div>
+          <p class="eyebrow">Paso 1</p>
+          <h2>Cargar un nuevo item</h2>
+          <p class="subhead">Completa los datos del producto y su lote para guardarlos en el inventario.</p>
+        </div>
+      </div>
+
+      <form id="form-carga" class="form-grid">
+        <label class="field">
+          <span>Nombre</span>
+          <input name="nombre" type="text" required placeholder="Ej. Ibuprofeno 600">
+        </label>
+        <label class="field">
+          <span>Laboratorio</span>
+          <input name="laboratorio" type="text" required placeholder="Ej. Bayer">
+        </label>
+        <label class="field">
+          <span>Compuesto</span>
+          <input name="compuesto" type="text" required placeholder="Ej. Ibuprofeno">
+        </label>
+        <label class="field">
+          <span>Nro. de lote</span>
+          <input name="nro_lote" type="text" required placeholder="Ej. L-12345">
+        </label>
+        <label class="field">
+          <span>Fecha de vencimiento</span>
+          <input name="fecha_vencimiento" type="date" required>
+        </label>
+        <label class="field">
+          <span>Cantidad actual</span>
+          <input name="cantidad_actual" type="number" min="1" required placeholder="Ej. 50">
+        </label>
+        <div class="acciones-form">
+          <button type="submit" class="btn primario">Registrar item</button>
+          <button type="reset" class="btn secundario">Limpiar</button>
+        </div>
+      </form>
+      <div id="mensaje-carga" class="mensaje"></div>
+    </section>
+
+    <section id="seccion-alertas" class="seccion">
+      <div class="seccion-header">
+        <div>
+          <p class="eyebrow">Paso 2</p>
+          <h2>Alertas de vencimiento</h2>
+          <p class="subhead">Consulta los lotes cercanos a vencer y gestiona devoluciones.</p>
+        </div>
+        <div class="seccion-actions">
+          <button id="btn-refrescar" class="btn primario">Recargar alertas</button>
+        </div>
+      </div>
+      <div id="mensaje-alertas" class="mensaje"></div>
+      <div id="contenedor-alertas" class="tabla-wrapper"></div>
+    </section>
+  </main>
+
+  <div id="modal-devolucion" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Devolucion</p>
+          <h3>Registrar devolucion</h3>
+        </div>
+        <button type="button" class="icon-btn" data-modal-close aria-label="Cerrar modal">X</button>
+      </div>
+      <p id="modal-contexto" class="modal-contexto"></p>
+      <form id="form-modal" class="modal-form">
+        <label class="field">
+          <span>Cantidad a devolver</span>
+          <input id="input-cantidad" name="cantidad" type="number" min="1" required placeholder="Ej. 5">
+        </label>
+        <div id="modal-error" class="modal-error" role="alert"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn secundario" data-modal-cancel>Cancelar</button>
+          <button type="submit" class="btn primario">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
