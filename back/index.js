@@ -8,9 +8,12 @@ import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
 import 'dotenv/config';
+import { startScheduler } from './tasks/alertScheduler.js';
+import { verificarYEnviarAlertas } from './services/vencimientoService.js';
 // Importar las rutas
 import inventarioRoutes from './routes/inventario.routes.js';
 import authRoutes from './routes/auth.routes.js';
+
 //-------------------------------------------//
 
 
@@ -29,13 +32,15 @@ const pool = new pg.Pool({
 app.use(express.json());
 app.use(cors());
 
+startScheduler();
+
 
 //--------RUTAS--------//
 app.use('/api/inventario', inventarioRoutes);
 app.use('/api/auth', authRoutes);
 //---------------------//
 
-
+verificarYEnviarAlertas();// Llamada inicial para probar la funcionalidad inmediatamente
 
 
 // Iniciar el servidor

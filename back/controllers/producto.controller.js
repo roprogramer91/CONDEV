@@ -2,6 +2,7 @@
 import { obtenerProductoPorNombre, guardarProducto } from '../models/producto.model.js';
 import Lote from '../models/lote.model.js'; // Necesitamos la clase Lote para crear la instancia
 
+
 // Simulación de ID de la Farmacia logueada (temporal)
 const FARMACIA_ID = 1; 
 

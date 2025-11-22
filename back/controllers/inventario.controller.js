@@ -1,26 +1,29 @@
 // controllers/inventario.controller.js
 
 // importamos las dependencias necesarias
-import Lote from '../classes/Lote.js';
 import { obtenerProductoPorNombre, guardarProducto, actualizarProducto } from '../models/producto.model.js';
-import { guardarLote, obtenerLotesAVencer, actualizarStockLote, obtenerLotePorNro, sumarStockLote, actualizarLote,eliminarLote } from '../models/lote.model.js';
+import { guardarLote, obtenerLotesAVencer, actualizarStockLote, obtenerLotePorNro, sumarStockLote, actualizarLote, eliminarLote } from '../models/lote.model.js';
 import { calcularDiferenciaDias } from '../utils/dateUtils.js';
+import { obtenerAlertasProcesadas } from '../services/vencimientoService.js';
 
+// Importamos las clases necesarias
+import Producto from '../classes/Producto.js';
+import Lote from '../classes/Lote.js';
 
 export const registrarItemConLote = async (req, res) => {
 
     const FARMACIA_ID = req.usuario.farmacia_id; // Obtenemos el ID de la Farmacia del token
-    
-    const { 
-        nombre, 
-        laboratorio, 
-        compuesto, 
-        nro_lote, 
-        fecha_vencimiento, 
-        cantidad_actual 
+
+    const {
+        nombre,
+        laboratorio,
+        compuesto,
+        nro_lote,
+        fecha_vencimiento,
+        cantidad_actual
     } = req.body;
-    
-    let productoId; 
+
+    let productoId;
     let loteGuardado = false; // Flag para controlar si insertamos o actualizamos
 
     try {
@@ -42,7 +45,7 @@ export const registrarItemConLote = async (req, res) => {
             // Caso 2A: EL LOTE YA EXISTE (Probablemente con stock 0). Lo reutilizamos.
             await sumarStockLote(loteExistente.id, cantidad_actual);
             loteGuardado = true;
-            
+
         } else {
             // Caso 2B: El Lote es totalmente nuevo para este producto. Lo insertamos.
             const nuevoLote = new Lote(productoId, nro_lote, fecha_vencimiento, cantidad_actual, FARMACIA_ID);
@@ -52,12 +55,12 @@ export const registrarItemConLote = async (req, res) => {
 
         if (loteGuardado) {
             // --- PASO 3: RESPUESTA AL CLIENTE ---
-            return res.status(201).json({ 
+            return res.status(201).json({
                 mensaje: 'Item y Lote registrados/actualizados con éxito!',
                 productoId: productoId
             });
         }
-        
+
     } catch (error) {
         console.error("🚨 Error en el controlador de registro:", error.message);
         // Devolvemos un error 500 para el cliente
@@ -72,54 +75,36 @@ const DIAS_URGENTE = 30;
 const DIAS_MEDIO = 60;
 const DIAS_AVISO = 90;
 
+
+// Controlador para revisar vencimientos
 export const revisarVencimientos = async (req, res) => {
-    
-    const FARMACIA_ID = req.usuario.farmacia_id; // Obtenemos el ID de la Farmacia del token
+
+    // El ID de la farmacia viene del middleware de autenticación
+    const farmaciaId = req.usuario.farmacia_id;
 
     try {
-        // 1. Obtener datos crudos (Máximo 90 días adelante)
-        const lotesCrudos = await obtenerLotesAVencer(DIAS_AVISO, FARMACIA_ID);
+        // 1. Llamar al Servicio y delegar TODO el trabajo de lógica y consulta
+        // El servicio trae la lista clasificada y procesada.
+        const alertasClasificadas = await obtenerAlertasProcesadas(farmaciaId);
 
-        // 2. Procesar y clasificar los lotes
-        const alertasClasificadas = lotesCrudos.map(lote => {
-            
-            // Calculamos cuántos días faltan para el vencimiento 
-            const diasRestantes = calcularDiferenciaDias(lote.fecha_vencimiento); 
-
-            let categoria = 'NINGUNA'; // Valor por defecto
-
-            if (diasRestantes <= DIAS_URGENTE) {
-                categoria = 'URGENTE';
-            } else if (diasRestantes <= DIAS_MEDIO) {
-                categoria = 'MEDIO';
-            } else {
-                categoria = 'AVISO';
-            }
-                
-            return { 
-                ...lote, 
-                dias_restantes: diasRestantes, 
-                categoria_alerta: categoria 
-            };
-        });
-
-        // 3. Generar Respuesta
+        // 2. Generar Respuesta (Solo maneja el flujo HTTP)
         return res.status(200).json(alertasClasificadas);
 
     } catch (error) {
-        console.error("🚨 Error al revisar vencimientos:", error);
-        return res.status(500).json({ error: 'Fallo al procesar las alertas.' });
+        // Maneja errores y envía respuesta HTTP
+        console.error("🚨 Error al obtener alertas:", error.message);
+        return res.status(500).json({ error: 'Fallo al procesar las alertas. Intentar más tarde.' });
     }
 };
 
 
 // 3. Controlador para registrar devoluciones y actualizar stock
 export const registrarDevolucion = async (req, res) => {
-    
+
     // 1. Obtener datos de la petición (Postman)
     // El usuario debe indicarnos el ID del lote (que sacó de la alerta) 
     // y la cantidad a descontar.
-    const { lote_id, cantidad_devuelta } = req.body; 
+    const { lote_id, cantidad_devuelta } = req.body;
 
     // Validación rápida:
     if (!lote_id || !cantidad_devuelta || cantidad_devuelta <= 0) {
@@ -129,9 +114,9 @@ export const registrarDevolucion = async (req, res) => {
     try {
         // 2. Llamar al Modelo para hacer el UPDATE en la base de datos
         await actualizarStockLote(lote_id, cantidad_devuelta);
-        
+
         // 3. Respuesta exitosa
-        return res.status(200).json({ 
+        return res.status(200).json({
             mensaje: `Devolución de ${cantidad_devuelta} unidades registrada con éxito para el Lote ID: ${lote_id}. Stock descontado.`
         });
 
@@ -145,19 +130,19 @@ export const registrarDevolucion = async (req, res) => {
 
 // 4. Controlador para editar un ítem del inventario (Producto + Lote)
 export const editarItemInventario = async (req, res) => {
-    
+
     // 1. Obtener datos cruciales y opcionales del body
-    const { 
+    const {
         producto_id, // Necesario para saber QUÉ producto actualizar
         lote_id,     // Necesario para saber QUÉ lote actualizar
         // Datos del Producto Maestro que PUEDEN cambiar
-        nombre, 
-        laboratorio, 
+        nombre,
+        laboratorio,
         compuesto,
         // Datos del Lote que PUEDEN cambiar
         nro_lote,
-        fecha_vencimiento, 
-        cantidad_actual 
+        fecha_vencimiento,
+        cantidad_actual
     } = req.body;
 
     if (!producto_id || !lote_id) {
@@ -166,7 +151,7 @@ export const editarItemInventario = async (req, res) => {
 
     try {
         // --- 2. Lógica de Actualización Condicional ---
-        
+
         // A. Actualizar Producto Maestro (si hay cambios en sus campos)
         if (nombre || laboratorio || compuesto) {
             const nuevosDatosProducto = { nombre, laboratorio, compuesto };
@@ -180,8 +165,8 @@ export const editarItemInventario = async (req, res) => {
         }
 
         // --- 3. Respuesta Final ---
-        return res.status(200).json({ 
-            mensaje: `El Producto ${producto_id} y el Lote ${lote_id} fueron actualizados con éxito.` 
+        return res.status(200).json({
+            mensaje: `El Producto ${producto_id} y el Lote ${lote_id} fueron actualizados con éxito.`
         });
 
     } catch (error) {
@@ -194,7 +179,7 @@ export const editarItemInventario = async (req, res) => {
 
 // 5. Controlador para eliminar un ítem del inventario (Lote)
 export const eliminarItemInventario = async (req, res) => {
-    
+
     // En las peticiones DELETE, el ID se suele pasar en la URL (como un parámetro)
     const { id } = req.params; // Lo obtenemos de req.params
 
@@ -204,9 +189,9 @@ export const eliminarItemInventario = async (req, res) => {
 
     try {
         await eliminarLote(id);
-        
-        return res.status(200).json({ 
-            mensaje: `El Lote con ID ${id} fue eliminado correctamente.` 
+
+        return res.status(200).json({
+            mensaje: `El Lote con ID ${id} fue eliminado correctamente.`
         });
 
     } catch (error) {

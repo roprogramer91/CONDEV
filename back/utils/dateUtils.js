@@ -8,26 +8,27 @@
  */
 export const calcularDiferenciaDias = (fechaVencimiento) => {
     
-    // 1. Convertir la entrada a objetos Date
-    // La fecha de vencimiento puede venir como string de la DB (YYYY-MM-DD)
-    const fechaVenc = new Date(fechaVencimiento);
+    // 1. Convertir la entrada a un formato seguro (Año, Mes, Día)
+    // Esto evita que JavaScript aplique la corrección de la Zona Horaria.
+    const fechaString = new Date(fechaVencimiento).toISOString().slice(0, 10);
+    const [year, month, day] = fechaString.split('-');
+
+    // Crear la fecha de vencimiento usando UTC para evitar el desfase
+    const fechaVenc = new Date(Date.UTC(year, month - 1, day, 0, 0, 0)); 
     
-    // 2. Obtener la fecha actual y resetear la hora a 00:00:00 
-    // Esto asegura que la diferencia solo dependa de los días completos,
-    // y no de la hora exacta de la consulta, lo cual es fundamental para alertas.
+    // 2. Obtener la fecha actual (también en UTC, al inicio del día)
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); 
+    // Creamos la fecha de hoy normalizada a UTC 00:00:00
+    const hoyNormalizado = new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0));
     
     // 3. Calcular la diferencia en milisegundos
-    // Restamos la fecha de vencimiento menos la fecha actual
-    const diferenciaMs = fechaVenc.getTime() - hoy.getTime();
+    const diferenciaMs = fechaVenc.getTime() - hoyNormalizado.getTime(); 
     
-    // 4. Convertir milisegundos a días
-    // 1 día = 1000 ms * 60 segundos * 60 minutos * 24 horas
+    // 4. Convertir milisegundos a días (y redondear para evitar decimales)
     const MS_POR_DIA = 1000 * 60 * 60 * 24;
     
-    // Redondeamos hacia arriba para incluir el día actual si hay una fracción
-    const diasRestantes = Math.ceil(diferenciaMs / MS_POR_DIA);
+    // Math.round es suficiente aquí ya que ya normalizamos las horas
+    const diasRestantes = Math.round(diferenciaMs / MS_POR_DIA);
     
     return diasRestantes;
 };
