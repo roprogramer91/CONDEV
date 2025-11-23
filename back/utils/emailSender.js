@@ -1,14 +1,16 @@
 // utils/emailSender.js
+// Acá configuro y manejo el envío de emails usando Nodemailer
+// Se usa para enviar alertas de vencimiento a los administradores
 
 import nodemailer from 'nodemailer';
-import 'dotenv/config'; // Asegurar que las variables estén cargadas
+import 'dotenv/config';
 
-// 1. Configuración del Transportador (Conexión al servidor SMTP)
-// Esto debe ejecutarse una sola vez al inicio.
+// Configuro el transportador SMTP con las credenciales de Hostinger
+// Esto se ejecuta una sola vez al inicio del servidor
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: process.env.SMTP_PORT,
-    secure: true, // true para 465, false para otros puertos
+    secure: true, // true para puerto 465 (SSL)
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -16,19 +18,19 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Función que envía el correo con la alerta de vencimiento.
- * @param {string} to - Destinatario (ej: correo del ADMIN).
- * @param {string} subject - Asunto del correo (ej: ALERTA URGENTE).
- * @param {string} htmlContent - Contenido HTML del mensaje.
+ * Envío un email de notificación
+ * @param {string} to - Email del destinatario (admin de la farmacia)
+ * @param {string} subject - Asunto del correo
+ * @param {string} htmlContent - Contenido HTML del mensaje
+ * @returns {Promise<boolean>} true si se envió correctamente
  */
 export const enviarEmailNotificacion = async (to, subject, htmlContent) => {
-    
     // Opciones del correo
     const mailOptions = {
         from: process.env.EMAIL_USER, // Remitente
-        to: to,                      // Destinatario (el correo del admin)
-        subject: subject,            // Asunto
-        html: htmlContent,           // Contenido
+        to: to,                        // Destinatario
+        subject: subject,              // Asunto
+        html: htmlContent,             // Contenido HTML
     };
 
     try {
@@ -37,7 +39,6 @@ export const enviarEmailNotificacion = async (to, subject, htmlContent) => {
         return true;
     } catch (error) {
         console.error('🚨 [EMAIL ERROR] Falló el envío:', error);
-        // Lanzamos un error para que el Servicio pueda capturarlo y manejarlo
         throw new Error('Error al enviar la notificación por correo.');
     }
 };

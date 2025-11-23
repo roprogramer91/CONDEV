@@ -1,18 +1,24 @@
 // controllers/inventario.controller.js
+// Acá manejo todas las operaciones del inventario: registrar, consultar, editar, eliminar
+// Este es uno de los controladores más importantes del sistema
 
-// importamos las dependencias necesarias
 import { obtenerProductoPorNombre, guardarProducto, actualizarProducto } from '../models/producto.model.js';
-import { guardarLote, obtenerLotesAVencer, actualizarStockLote, obtenerLotePorNro, sumarStockLote, actualizarLote, eliminarLote } from '../models/lote.model.js';
+import { guardarLote, obtenerLotesAVencer, actualizarStockLote, obtenerLotePorNro, sumarStockLote, actualizarLote, eliminarLote, buscarLotesPorNombreProducto } from '../models/lote.model.js';
 import { calcularDiferenciaDias } from '../utils/dateUtils.js';
 import { obtenerAlertasProcesadas, verificarYEnviarAlertas } from '../services/vencimientoService.js';
 
-// Importamos las clases necesarias
+// Importo las clases de dominio
 import Producto from '../classes/Producto.js';
 import Lote from '../classes/Lote.js';
 
+/**
+ * Registro un nuevo item en el inventario (producto + lote)
+ * Si el producto ya existe, solo agrego el lote
+ * Si el lote ya existe, sumo el stock
+ */
 export const registrarItemConLote = async (req, res) => {
-
-    const FARMACIA_ID = req.usuario.farmacia_id; // Obtenemos el ID de la Farmacia del token
+    // Obtengo el ID de la farmacia desde el token JWT
+    const FARMACIA_ID = req.usuario.farmacia_id;
 
     const {
         nombre,
@@ -24,37 +30,36 @@ export const registrarItemConLote = async (req, res) => {
     } = req.body;
 
     let productoId;
-    let loteGuardado = false; // Flag para controlar si insertamos o actualizamos
+    let loteGuardado = false;
 
     try {
-        // --- PASO 1: BUSCAR/CREAR PRODUCTO MAESTRO ---
+        // PASO 1: Busco si el producto ya existe en la farmacia
         const productoExistente = await obtenerProductoPorNombre(nombre, FARMACIA_ID);
 
         if (productoExistente) {
+            // El producto ya existe, uso su ID
             productoId = productoExistente.id;
         } else {
-            // Caso B: Producto nuevo. Lo guardamos y obtenemos el ID
+            // Es un producto nuevo, lo creo
             const nuevoProductoData = new Producto(nombre, laboratorio, compuesto, FARMACIA_ID, 0);
             productoId = await guardarProducto(nuevoProductoData);
         }
 
-        // --- PASO 2: BUSCAR SI EL LOTE YA EXISTE ---
+        // PASO 2: Busco si el lote ya existe para este producto
         const loteExistente = await obtenerLotePorNro(productoId, nro_lote, FARMACIA_ID);
 
         if (loteExistente) {
-            // Caso 2A: EL LOTE YA EXISTE (Probablemente con stock 0). Lo reutilizamos.
+            // El lote ya existe (probablemente con stock 0), sumo el stock
             await sumarStockLote(loteExistente.id, cantidad_actual);
             loteGuardado = true;
-
         } else {
-            // Caso 2B: El Lote es totalmente nuevo para este producto. Lo insertamos.
+            // Es un lote nuevo, lo creo
             const nuevoLote = new Lote(productoId, nro_lote, fecha_vencimiento, cantidad_actual, FARMACIA_ID);
             await guardarLote(nuevoLote);
             loteGuardado = true;
         }
 
         if (loteGuardado) {
-            // --- PASO 3: RESPUESTA AL CLIENTE ---
             return res.status(201).json({
                 mensaje: 'Item y Lote registrados/actualizados con éxito!',
                 productoId: productoId
@@ -63,59 +68,49 @@ export const registrarItemConLote = async (req, res) => {
 
     } catch (error) {
         console.error("🚨 Error en el controlador de registro:", error.message);
-        // Devolvemos un error 500 para el cliente
         return res.status(500).json({ error: 'Fallo al procesar la carga: ' + error.message });
     }
 };
 
-// 2. Controlador para revisar vencimientos
-
-// Definimos los umbrales en días
+// Umbrales de días para clasificar alertas
 const DIAS_URGENTE = 30;
 const DIAS_MEDIO = 60;
 const DIAS_AVISO = 90;
 
-
-// Controlador para revisar vencimientos
+/**
+ * Obtengo las alertas de vencimiento para la farmacia del usuario
+ * Devuelvo los lotes procesados con días restantes y categoría
+ */
 export const revisarVencimientos = async (req, res) => {
-
     // El ID de la farmacia viene del middleware de autenticación
     const farmaciaId = req.usuario.farmacia_id;
 
     try {
-        // 1. Llamar al Servicio y delegar TODO el trabajo de lógica y consulta
-        // El servicio trae la lista clasificada y procesada.
+        // Llamo al servicio que procesa y clasifica las alertas
         const alertasClasificadas = await obtenerAlertasProcesadas(farmaciaId);
-
-        // 2. Generar Respuesta (Solo maneja el flujo HTTP)
         return res.status(200).json(alertasClasificadas);
 
     } catch (error) {
-        // Maneja errores y envía respuesta HTTP
         console.error("🚨 Error al obtener alertas:", error.message);
         return res.status(500).json({ error: 'Fallo al procesar las alertas. Intentar más tarde.' });
     }
 };
 
-
-// 3. Controlador para registrar devoluciones y actualizar stock
+/**
+ * Registro una devolución de mercadería y descuento el stock
+ */
 export const registrarDevolucion = async (req, res) => {
-
-    // 1. Obtener datos de la petición (Postman)
-    // El usuario debe indicarnos el ID del lote (que sacó de la alerta) 
-    // y la cantidad a descontar.
     const { lote_id, cantidad_devuelta } = req.body;
 
-    // Validación rápida:
+    // Validación básica
     if (!lote_id || !cantidad_devuelta || cantidad_devuelta <= 0) {
         return res.status(400).json({ error: 'Faltan lote_id o cantidad_devuelta válida.' });
     }
 
     try {
-        // 2. Llamar al Modelo para hacer el UPDATE en la base de datos
+        // Actualizo el stock del lote
         await actualizarStockLote(lote_id, cantidad_devuelta);
 
-        // 3. Respuesta exitosa
         return res.status(200).json({
             mensaje: `Devolución de ${cantidad_devuelta} unidades registrada con éxito para el Lote ID: ${lote_id}. Stock descontado.`
         });
@@ -126,20 +121,17 @@ export const registrarDevolucion = async (req, res) => {
     }
 };
 
-
-
-// 4. Controlador para editar un ítem del inventario (Producto + Lote)
+/**
+ * Edito un item del inventario (producto y/o lote)
+ * Actualizo solo los campos que vienen en el request
+ */
 export const editarItemInventario = async (req, res) => {
-
-    // 1. Obtener datos cruciales y opcionales del body
     const {
-        producto_id, // Necesario para saber QUÉ producto actualizar
-        lote_id,     // Necesario para saber QUÉ lote actualizar
-        // Datos del Producto Maestro que PUEDEN cambiar
+        producto_id,
+        lote_id,
         nombre,
         laboratorio,
         compuesto,
-        // Datos del Lote que PUEDEN cambiar
         nro_lote,
         fecha_vencimiento,
         cantidad_actual
@@ -150,38 +142,33 @@ export const editarItemInventario = async (req, res) => {
     }
 
     try {
-        // --- 2. Lógica de Actualización Condicional ---
-
-        // A. Actualizar Producto Maestro (si hay cambios en sus campos)
+        // Actualizo el producto si hay cambios
         if (nombre || laboratorio || compuesto) {
             const nuevosDatosProducto = { nombre, laboratorio, compuesto };
             await actualizarProducto(producto_id, nuevosDatosProducto);
         }
 
-        // B. Actualizar Lote (si hay cambios en sus campos)
+        // Actualizo el lote si hay cambios
         if (nro_lote || fecha_vencimiento || cantidad_actual !== undefined) {
             const nuevosDatosLote = { nro_lote, fecha_vencimiento, cantidad_actual };
             await actualizarLote(lote_id, nuevosDatosLote);
         }
 
-        // --- 3. Respuesta Final ---
         return res.status(200).json({
             mensaje: `El Producto ${producto_id} y el Lote ${lote_id} fueron actualizados con éxito.`
         });
 
     } catch (error) {
         console.error("🚨 Error al editar item:", error.message);
-        // Devolvemos un error si la BD falla (ej: si el nuevo nro_lote ya existe)
         return res.status(500).json({ error: 'Fallo al procesar la edición: ' + error.message });
     }
 };
 
-
-// 5. Controlador para eliminar un ítem del inventario (Lote)
+/**
+ * Elimino un lote del inventario
+ */
 export const eliminarItemInventario = async (req, res) => {
-
-    // En las peticiones DELETE, el ID se suele pasar en la URL (como un parámetro)
-    const { id } = req.params; // Lo obtenemos de req.params
+    const { id } = req.params;
 
     if (!id) {
         return res.status(400).json({ error: 'Falta el ID del lote a eliminar.' });
@@ -189,7 +176,6 @@ export const eliminarItemInventario = async (req, res) => {
 
     try {
         await eliminarLote(id);
-
         return res.status(200).json({
             mensaje: `El Lote con ID ${id} fue eliminado correctamente.`
         });
@@ -200,9 +186,12 @@ export const eliminarItemInventario = async (req, res) => {
     }
 };
 
-// 6. Controlador de TEST para disparar emails
+/**
+ * Disparo manualmente el proceso de verificación de alertas (para testing)
+ */
 export const triggerTestEmail = async (req, res) => {
     console.log("🧪 [TEST] Disparando verificación de alertas manualmente...");
+
     try {
         await verificarYEnviarAlertas();
         return res.status(200).json({ mensaje: 'Proceso de alertas disparado. Revisa la consola del servidor y tu correo.' });
@@ -212,19 +201,19 @@ export const triggerTestEmail = async (req, res) => {
     }
 };
 
-// 7. Controlador para BUSCAR items por nombre (para la gestión)
+/**
+ * Busco items del inventario por nombre de producto
+ * Usado en la sección de gestión del frontend
+ */
 export const buscarItems = async (req, res) => {
     const farmaciaId = req.usuario.farmacia_id;
-    const { q } = req.query; // El término de búsqueda viene en la URL ?q=...
+    const { q } = req.query;
 
     if (!q) {
         return res.status(400).json({ error: 'Falta el término de búsqueda (q).' });
     }
 
     try {
-        // Importamos la función del modelo (asegúrate de haberla exportado en lote.model.js)
-        const { buscarLotesPorNombreProducto } = await import('../models/lote.model.js');
-
         const resultados = await buscarLotesPorNombreProducto(farmaciaId, q);
         return res.status(200).json(resultados);
 
